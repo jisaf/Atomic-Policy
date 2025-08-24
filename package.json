@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/jisaf/Atomic-Policy#readme",
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
     "d3": "^7.9.0",
     "lucide-react": "^0.541.0",
     "react": "^19.1.1",

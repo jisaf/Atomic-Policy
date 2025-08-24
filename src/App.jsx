@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Search, Plus, Grid3X3, GitBranch, Beaker, FileText, Lightbulb, Target } from 'lucide-react';
 
 import AtomCard from './components/AtomCard';
@@ -70,6 +71,7 @@ const AtomicUXApp = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Analytics />
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
