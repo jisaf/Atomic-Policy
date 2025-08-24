@@ -6,7 +6,7 @@ import App from './App';
 describe('App', () => {
   it('renders the main application', () => {
     render(<App />);
-    expect(screen.getByText('Atomic UX Research')).toBeInTheDocument();
+    expect(screen.getByText('Atomic Policy')).toBeInTheDocument();
   });
 
   it('shows the create modal when "Add Atom" is clicked', () => {
