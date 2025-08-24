@@ -1,6 +1,30 @@
 import React, { useState } from 'react';
 import { Analytics } from '@vercel/analytics/react';
-import { Search, Plus, Grid3X3, GitBranch, Beaker, FileText, Lightbulb, Target } from 'lucide-react';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Container,
+  Grid,
+  TextField,
+  Select,
+  MenuItem,
+  Box,
+  ToggleButtonGroup,
+  ToggleButton,
+  InputAdornment,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Search as SearchIcon,
+  GridView as GridViewIcon,
+  AccountTree as AccountTreeIcon,
+  Science as ScienceIcon,
+  Notes as NotesIcon,
+  Code as CodeIcon,
+  TrackChanges as TrackChangesIcon,
+} from '@mui/icons-material';
 
 import AtomCard from './components/AtomCard';
 import FlowchartView from './components/FlowchartView';
@@ -18,140 +42,138 @@ const AtomicUXApp = () => {
   const atomTypes = {
     experiment: {
       label: 'Source text',
-      icon: Beaker,
-      color: 'bg-blue-100 border-blue-300',
-      description: 'Select a specific bill section'
+      icon: ScienceIcon,
+      description: 'Select a specific bill section',
     },
     fact: {
       label: 'Plain language interpretation',
-      icon: FileText,
-      color: 'bg-green-100 border-green-300',
-      description: 'Explain in simple terms'
+      icon: NotesIcon,
+      description: 'Explain in simple terms',
     },
     insight: {
       label: 'Pseudo code',
-      icon: Lightbulb,
-      color: 'bg-yellow-100 border-yellow-300',
-      description: 'Your interpretation in code-like logic'
+      icon: CodeIcon,
+      description: 'Your interpretation in code-like logic',
     },
     recommendation: {
       label: 'Implementation',
-      icon: Target,
-      color: 'bg-purple-100 border-purple-300',
-      description: 'Reference to actual implementation'
-    }
+      icon: TrackChangesIcon,
+      description: 'Reference to actual implementation',
+    },
   };
 
   const filteredAtoms = atoms.filter(atom => {
-    const matchesSearch = atom.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (atom.content && atom.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         atom.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch =
+      atom.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (atom.content && atom.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      atom.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = selectedType === 'all' || atom.type === selectedType;
     return matchesSearch && matchesType;
   });
 
-  const createAtom = (atomData) => {
+  const createAtom = atomData => {
     const newAtom = {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
-      ...atomData
+      ...atomData,
     };
     setAtoms([...atoms, newAtom]);
     setShowCreateModal(false);
   };
 
   const linkAtoms = (fromId, toId) => {
-    setAtoms(atoms.map(atom => {
-      if (atom.id === fromId) {
-        return { ...atom, linkedTo: [...(atom.linkedTo || []), toId] };
-      }
-      return atom;
-    }));
+    setAtoms(
+      atoms.map(atom => {
+        if (atom.id === fromId) {
+          return { ...atom, linkedTo: [...(atom.linkedTo || []), toId] };
+        }
+        return atom;
+      })
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       <Analytics />
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">Atomic UX Research</h1>
-              <div className="flex bg-gray-100 rounded-md p-1 ml-4">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${
-                    viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-gray-600'
-                  }`}
-                >
-                  <Grid3X3 size={14} />
-                  Grid
-                </button>
-                <button
-                  onClick={() => setViewMode('flowchart')}
-                  className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${
-                    viewMode === 'flowchart' ? 'bg-white shadow-sm' : 'text-gray-600'
-                  }`}
-                >
-                  <GitBranch size={14} />
-                  Flow
-                </button>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
-            >
-              <Plus size={16} /> Add Atom
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Search and Filters */}
-        <div className="mb-6 flex gap-4 items-center">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search atoms..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Atomic UX Research
+          </Typography>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(e, newViewMode) => setViewMode(newViewMode)}
+            aria-label="view mode"
           >
-            <option value="all">All Types</option>
-            {Object.entries(atomTypes).map(([key, type]) => (
-              <option key={key} value={key}>{type.label}</option>
-            ))}
-          </select>
-        </div>
+            <ToggleButton value="grid" aria-label="grid view">
+              <GridViewIcon />
+            </ToggleButton>
+            <ToggleButton value="flowchart" aria-label="flowchart view">
+              <AccountTreeIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setShowCreateModal(true)}
+            sx={{ ml: 2 }}
+          >
+            Add Atom
+          </Button>
+        </Toolbar>
+      </AppBar>
 
-        {/* Atom Cards Grid or Flowchart */}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            variant="outlined"
+            placeholder="Search atoms..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            sx={{ flexGrow: 1, maxWidth: 400 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Select
+            value={selectedType}
+            onChange={e => setSelectedType(e.target.value)}
+            variant="outlined"
+          >
+            <MenuItem value="all">All Types</MenuItem>
+            {Object.entries(atomTypes).map(([key, type]) => (
+              <MenuItem key={key} value={key}>
+                {type.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <Grid container spacing={2}>
             {filteredAtoms.map(atom => (
-              <AtomCard
-                key={atom.id}
-                atom={atom}
-                atomTypes={atomTypes}
-                onSelect={setSelectedAtom}
-                atoms={atoms}
-              />
+              <Grid key={atom.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                <AtomCard
+                  atom={atom}
+                  atomTypes={atomTypes}
+                  onSelect={setSelectedAtom}
+                  atoms={atoms}
+                />
+              </Grid>
             ))}
             {filteredAtoms.length === 0 && (
-              <div className="col-span-full text-center py-12 text-gray-500">
-                {atoms.length === 0 ? "No atoms yet. Create your first one!" : "No atoms match your search."}
-              </div>
+              <Grid size={{ xs: 12 }} sx={{ textAlign: 'center', py: 8 }}>
+                <Typography color="text.secondary">
+                  {atoms.length === 0 ? 'No atoms yet. Create your first one!' : 'No atoms match your search.'}
+                </Typography>
+              </Grid>
             )}
-          </div>
+          </Grid>
         ) : (
           <FlowchartView
             atoms={filteredAtoms}
@@ -160,9 +182,8 @@ const AtomicUXApp = () => {
             allAtoms={atoms}
           />
         )}
-      </div>
+      </Container>
 
-      {/* Create Modal */}
       {showCreateModal && (
         <CreateAtomModal
           onClose={() => setShowCreateModal(false)}
@@ -172,7 +193,6 @@ const AtomicUXApp = () => {
         />
       )}
 
-      {/* Detail Modal */}
       {selectedAtom && (
         <AtomDetailModal
           atom={selectedAtom}
@@ -182,7 +202,7 @@ const AtomicUXApp = () => {
           onLink={linkAtoms}
         />
       )}
-    </div>
+    </Box>
   );
 };
 

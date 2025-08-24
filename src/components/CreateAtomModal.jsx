@@ -1,72 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { fetchBills, fetchBillText } from '../api/congress';
+import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+} from '@mui/material';
+import { Link as LinkIcon, LinkOff as LinkOffIcon } from '@mui/icons-material';
 
 const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
   const [formData, setFormData] = useState({
     type: 'experiment',
     title: '',
-    billNumber: '',
-    billTitle: '',
-    sectionTitle: '',
     content: '',
     fileReference: '',
     description: '',
     tags: '',
-    linkedTo: []
+    linkedTo: [],
   });
 
-  const [bills, setBills] = useState([]);
-  const [billSections, setBillSections] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleFetchBills = async (searchTerm = '') => {
-    setLoading(true);
-    setError('');
-    try {
-      const billsData = await fetchBills(searchTerm);
-      setBills(billsData);
-    } catch (err) {
-      setError('Failed to fetch bills: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFetchBillText = async (billType, billNumber, billTitle) => {
-    setLoading(true);
-    try {
-      const sections = await fetchBillText(billType, billNumber, billTitle);
-      setBillSections(sections);
-    } catch (err) {
-      setError('Failed to fetch bill text: ' + err.message);
-      setBillSections([]);
-    } finally {
-      setLoading(false);
-    }
+  const handleTypeChange = e => {
+    setFormData(prev => ({
+      ...prev,
+      type: e.target.value,
+      title: '',
+      content: '',
+      fileReference: '',
+      description: '',
+    }));
   };
-
-  useEffect(() => {
-    handleFetchBills();
-  }, []);
-
-  useEffect(() => {
-    if (formData.type === 'experiment' && formData.billNumber && formData.sectionTitle) {
-      const selectedSection = billSections.find(s => s.title === formData.sectionTitle);
-      if (selectedSection) {
-        setFormData(prev => ({
-          ...prev,
-          content: selectedSection.content,
-          title: `${formData.billNumber} - ${formData.sectionTitle}`
-        }));
-      }
-    }
-  }, [formData.billNumber, formData.sectionTitle, formData.type, billSections]);
 
   const handleSubmit = () => {
     if (!formData.title.trim()) return;
-
-    if (formData.type === 'experiment' && (!formData.billNumber || !formData.sectionTitle)) return;
     if (['fact', 'insight'].includes(formData.type) && !formData.content.trim()) return;
     if (formData.type === 'recommendation' && !formData.fileReference.trim()) return;
 
@@ -74,15 +55,10 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
       type: formData.type,
       title: formData.title,
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      linkedTo: formData.linkedTo
+      linkedTo: formData.linkedTo,
     };
 
-    if (formData.type === 'experiment') {
-      atomData.billNumber = formData.billNumber;
-      atomData.billTitle = formData.billTitle;
-      atomData.sectionTitle = formData.sectionTitle;
-      atomData.content = formData.content;
-    } else if (['fact', 'insight'].includes(formData.type)) {
+    if (['fact', 'insight'].includes(formData.type)) {
       atomData.content = formData.content;
     } else if (formData.type === 'recommendation') {
       atomData.fileReference = formData.fileReference;
@@ -93,117 +69,112 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     onCreate(atomData);
   };
 
-  const toggleLink = (atomId) => {
-    const linked = formData.linkedTo.includes(atomId);
-    setFormData({
-      ...formData,
-      linkedTo: linked
-        ? formData.linkedTo.filter(id => id !== atomId)
-        : [...formData.linkedTo, atomId]
-    });
+  const toggleLink = atomId => {
+    setFormData(prev => ({
+      ...prev,
+      linkedTo: prev.linkedTo.includes(atomId)
+        ? prev.linkedTo.filter(id => id !== atomId)
+        : [...prev.linkedTo, atomId],
+    }));
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold">Create New Atom</h2>
-        </div>
-        <div className="p-4 space-y-4 overflow-y-auto">
-          {/* Atom Type Selector */}
-          <select
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value, title: '', content: '' })}
-            className="w-full p-2 border rounded"
-          >
-            {Object.entries(atomTypes).map(([key, type]) => (
-              <option key={key} value={key}>{type.label}</option>
-            ))}
-          </select>
+    <Dialog open onClose={onClose} fullWidth maxWidth="md">
+      <DialogTitle>Create New Atom</DialogTitle>
+      <DialogContent dividers>
+        <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <FormControl fullWidth>
+            <InputLabel id="atom-type-label">Atom Type</InputLabel>
+            <Select
+              labelId="atom-type-label"
+              value={formData.type}
+              label="Atom Type"
+              onChange={handleTypeChange}
+            >
+              {Object.entries(atomTypes).map(([key, type]) => (
+                <MenuItem key={key} value={key}>
+                  {type.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-          {/* Dynamic Form Fields */}
-          {formData.type === 'experiment' ? (
-            <div className="space-y-2">
-              <input type="text" placeholder="Search for a bill..." onChange={(e) => handleFetchBills(e.target.value)} className="w-full p-2 border rounded" />
-              {loading && <p>Loading...</p>}
-              {error && <p className="text-red-500">{error}</p>}
-              <select
-                className="w-full p-2 border rounded"
-                onChange={(e) => {
-                  const [billType, billNumber, billTitle] = e.target.value.split('|');
-                  setFormData({...formData, billNumber: `${billType}${billNumber}`, billTitle});
-                  handleFetchBillText(billType, billNumber, billTitle);
-                }}
-              >
-                <option>Select a bill</option>
-                {bills.map(bill => <option key={bill.number} value={`${bill.type}|${bill.number}|${bill.title}`}>{bill.title}</option>)}
-              </select>
-              <select
-                className="w-full p-2 border rounded"
-                onChange={(e) => setFormData({...formData, sectionTitle: e.target.value})}
-              >
-                <option>Select a section</option>
-                {billSections.map(section => <option key={section.id} value={section.title}>{section.title}</option>)}
-              </select>
-              <input type="text" value={formData.title} readOnly placeholder="Title (auto-generated)" className="w-full p-2 border rounded bg-gray-100" />
-              <textarea value={formData.content} readOnly placeholder="Content (auto-generated)" className="w-full p-2 border rounded bg-gray-100 h-24"></textarea>
-            </div>
-          ) : (
-            <>
-              <input
-                type="text"
-                placeholder="Title"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full p-2 border rounded"
-              />
-              {formData.type === 'recommendation' ? (
-                <>
-                  <input type="text" placeholder="File Path or URL" value={formData.fileReference} onChange={e => setFormData({...formData, fileReference: e.target.value})} className="w-full p-2 border rounded" />
-                  <textarea placeholder="Description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-2 border rounded h-24"></textarea>
-                </>
-              ) : (
-                <textarea
-                  placeholder="Content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({...formData, content: e.target.value})}
-                  className="w-full p-2 border rounded h-24"
-                ></textarea>
-              )}
-            </>
-          )}
-
-          <input
-            type="text"
-            placeholder="Tags (comma-separated)"
-            onChange={(e) => setFormData({...formData, tags: e.target.value})}
-            className="w-full p-2 border rounded"
+          <TextField
+            name="title"
+            label="Title"
+            fullWidth
+            value={formData.title}
+            onChange={handleChange}
           />
 
-          {/* Link to existing atoms */}
-          <div>
-            <h3 className="font-medium mb-2">Link to existing atoms</h3>
-            <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
+          {formData.type === 'recommendation' ? (
+            <>
+              <TextField
+                name="fileReference"
+                label="File Path or URL"
+                fullWidth
+                value={formData.fileReference}
+                onChange={handleChange}
+              />
+              <TextField
+                name="description"
+                label="Description"
+                fullWidth
+                multiline
+                rows={4}
+                value={formData.description}
+                onChange={handleChange}
+              />
+            </>
+          ) : (
+            <TextField
+              name="content"
+              label="Content"
+              fullWidth
+              multiline
+              rows={4}
+              value={formData.content}
+              onChange={handleChange}
+              disabled={formData.type === 'experiment'}
+            />
+          )}
+
+          <TextField
+            name="tags"
+            label="Tags (comma-separated)"
+            fullWidth
+            value={formData.tags}
+            onChange={handleChange}
+          />
+
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Link to existing atoms
+            </Typography>
+            <List dense sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid #ccc', borderRadius: 1 }}>
               {existingAtoms.map(atom => (
-                <div key={atom.id} className="flex items-center justify-between p-1 hover:bg-gray-100 rounded">
-                  <span>{atom.title}</span>
-                  <button
-                    onClick={() => toggleLink(atom.id)}
-                    className={`px-2 py-0.5 text-xs rounded ${formData.linkedTo.includes(atom.id) ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  >
-                    {formData.linkedTo.includes(atom.id) ? 'Linked' : 'Link'}
-                  </button>
-                </div>
+                <ListItem
+                  key={atom.id}
+                  secondaryAction={
+                    <IconButton edge="end" onClick={() => toggleLink(atom.id)}>
+                      {formData.linkedTo.includes(atom.id) ? <LinkOffIcon /> : <LinkIcon />}
+                    </IconButton>
+                  }
+                >
+                  <ListItemText primary={atom.title} />
+                </ListItem>
               ))}
-            </div>
-          </div>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded bg-gray-200">Cancel</button>
-          <button onClick={handleSubmit} className="px-4 py-2 rounded bg-blue-600 text-white">Create</button>
-        </div>
-      </div>
-    </div>
+            </List>
+          </Box>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained">
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
