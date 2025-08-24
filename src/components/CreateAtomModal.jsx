@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { fetchBills, fetchBillText } from '../api/congress';
+import React, { useState } from 'react';
 
 const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
   const [formData, setFormData] = useState({
     type: 'experiment',
     title: '',
+    billType: 'hr',
     billNumber: '',
+    congress: '119',
     billTitle: '',
     sectionTitle: '',
     content: '',
@@ -15,58 +16,35 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     linkedTo: []
   });
 
-  const [bills, setBills] = useState([]);
-  const [billSections, setBillSections] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleFetchBills = async (searchTerm = '') => {
+  const handleFetchBillTitle = async () => {
+    if (!formData.billNumber || !formData.billType || !formData.congress) return;
     setLoading(true);
     setError('');
     try {
-      const billsData = await fetchBills(searchTerm);
-      setBills(billsData);
-    } catch (err) {
-      setError('Failed to fetch bills: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const { congress, billType, billNumber } = formData;
+      const response = await fetch(`/api/govinfo?congress=${congress}&billType=${billType}&billNumber=${billNumber}`);
+      const data = await response.json();
 
-  const handleFetchBillText = async (billType, billNumber, billTitle) => {
-    setLoading(true);
-    try {
-      const sections = await fetchBillText(billType, billNumber, billTitle);
-      setBillSections(sections);
-    } catch (err) {
-      setError('Failed to fetch bill text: ' + err.message);
-      setBillSections([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    handleFetchBills();
-  }, []);
-
-  useEffect(() => {
-    if (formData.type === 'experiment' && formData.billNumber && formData.sectionTitle) {
-      const selectedSection = billSections.find(s => s.title === formData.sectionTitle);
-      if (selectedSection) {
-        setFormData(prev => ({
-          ...prev,
-          content: selectedSection.content,
-          title: `${formData.billNumber} - ${formData.sectionTitle}`
-        }));
+      if (response.ok) {
+        setFormData(prev => ({ ...prev, billTitle: data.title, title: `${billType.toUpperCase()}${billNumber} - ${data.title}` }));
+      } else {
+        setError(data.error || 'Bill not found.');
+        setFormData(prev => ({ ...prev, billTitle: '', title: '' }));
       }
+    } catch (err) {
+      setError('Failed to fetch bill title: ' + err.message);
+    } finally {
+      setLoading(false);
     }
-  }, [formData.billNumber, formData.sectionTitle, formData.type, billSections]);
+  };
 
   const handleSubmit = () => {
     if (!formData.title.trim()) return;
 
-    if (formData.type === 'experiment' && (!formData.billNumber || !formData.sectionTitle)) return;
+    if (formData.type === 'experiment' && (!formData.billNumber || !formData.billTitle)) return;
     if (['fact', 'insight'].includes(formData.type) && !formData.content.trim()) return;
     if (formData.type === 'recommendation' && !formData.fileReference.trim()) return;
 
@@ -78,7 +56,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     };
 
     if (formData.type === 'experiment') {
-      atomData.billNumber = formData.billNumber;
+      atomData.billNumber = `${formData.billType.toUpperCase()}${formData.billNumber}`;
       atomData.billTitle = formData.billTitle;
       atomData.sectionTitle = formData.sectionTitle;
       atomData.content = formData.content;
@@ -124,29 +102,34 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
           {/* Dynamic Form Fields */}
           {formData.type === 'experiment' ? (
             <div className="space-y-2">
-              <input type="text" placeholder="Search for a bill..." onChange={(e) => handleFetchBills(e.target.value)} className="w-full p-2 border rounded" />
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Congress (e.g., 119)"
+                  value={formData.congress}
+                  onChange={e => setFormData({...formData, congress: e.target.value})}
+                  className="p-2 border rounded"
+                />
+                <select
+                  value={formData.billType}
+                  onChange={e => setFormData({...formData, billType: e.target.value})}
+                  className="p-2 border rounded"
+                >
+                  <option value="hr">H.R.</option>
+                  <option value="s">S.</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Bill Number"
+                  value={formData.billNumber}
+                  onChange={e => setFormData({...formData, billNumber: e.target.value})}
+                  className="p-2 border rounded"
+                />
+              </div>
+              <button onClick={handleFetchBillTitle} className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600">Fetch Bill Title</button>
               {loading && <p>Loading...</p>}
               {error && <p className="text-red-500">{error}</p>}
-              <select
-                className="w-full p-2 border rounded"
-                onChange={(e) => {
-                  const [billType, billNumber, billTitle] = e.target.value.split('|');
-                  setFormData({...formData, billNumber: `${billType}${billNumber}`, billTitle});
-                  handleFetchBillText(billType, billNumber, billTitle);
-                }}
-              >
-                <option>Select a bill</option>
-                {bills.map(bill => <option key={bill.number} value={`${bill.type}|${bill.number}|${bill.title}`}>{bill.title}</option>)}
-              </select>
-              <select
-                className="w-full p-2 border rounded"
-                onChange={(e) => setFormData({...formData, sectionTitle: e.target.value})}
-              >
-                <option>Select a section</option>
-                {billSections.map(section => <option key={section.id} value={section.title}>{section.title}</option>)}
-              </select>
               <input type="text" value={formData.title} readOnly placeholder="Title (auto-generated)" className="w-full p-2 border rounded bg-gray-100" />
-              <textarea value={formData.content} readOnly placeholder="Content (auto-generated)" className="w-full p-2 border rounded bg-gray-100 h-24"></textarea>
             </div>
           ) : (
             <>
