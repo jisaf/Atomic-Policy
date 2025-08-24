@@ -16,6 +16,8 @@ import {
   ListItem,
   ListItemText,
   IconButton,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { Link as LinkIcon, LinkOff as LinkOffIcon } from '@mui/icons-material';
 
@@ -28,7 +30,13 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     description: '',
     tags: '',
     linkedTo: [],
+    congress: '118',
+    billType: 'hr',
+    billNumber: '',
+    billTitle: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -46,8 +54,35 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     }));
   };
 
+  const handleFetchBillTitle = async () => {
+    if (!formData.billNumber || !formData.billType || !formData.congress) return;
+    setLoading(true);
+    setError('');
+    try {
+      const { congress, billType, billNumber } = formData;
+      // This is a placeholder for the actual API call.
+      // In a real scenario, you would fetch from a server-side endpoint.
+      // const response = await fetch(`/api/govinfo?congress=${congress}&billType=${billType}&billNumber=${billNumber}`);
+      // const data = await response.json();
+      const data = { title: `A bill to do something great for the ${billNumber}th time.` };
+      const response = { ok: true };
+
+      if (response.ok) {
+        setFormData(prev => ({ ...prev, billTitle: data.title, title: `${billType.toUpperCase()}${billNumber} - ${data.title}` }));
+      } else {
+        setError(data.error || 'Bill not found.');
+        setFormData(prev => ({ ...prev, billTitle: '', title: '' }));
+      }
+    } catch (err) {
+      setError('Failed to fetch bill title: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (!formData.title.trim()) return;
+    if (formData.type === 'experiment' && (!formData.billNumber || !formData.billTitle)) return;
     if (['fact', 'insight'].includes(formData.type) && !formData.content.trim()) return;
     if (formData.type === 'recommendation' && !formData.fileReference.trim()) return;
 
@@ -58,7 +93,13 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
       linkedTo: formData.linkedTo,
     };
 
-    if (['fact', 'insight'].includes(formData.type)) {
+    if (formData.type === 'experiment') {
+      atomData.congress = formData.congress;
+      atomData.billType = formData.billType;
+      atomData.billNumber = formData.billNumber;
+      atomData.billTitle = formData.billTitle;
+      atomData.content = formData.content; // This might be auto-populated later
+    } else if (['fact', 'insight'].includes(formData.type)) {
       atomData.content = formData.content;
     } else if (formData.type === 'recommendation') {
       atomData.fileReference = formData.fileReference;
@@ -99,13 +140,29 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
             </Select>
           </FormControl>
 
+          {formData.type === 'experiment' && (
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <TextField name="congress" label="Congress" value={formData.congress} onChange={handleChange} sx={{ width: '100px' }} />
+              <TextField name="billType" label="Bill Type" value={formData.billType} onChange={handleChange} sx={{ width: '100px' }} />
+              <TextField name="billNumber" label="Bill Number" value={formData.billNumber} onChange={handleChange} sx={{ flexGrow: 1 }} />
+              <Button onClick={handleFetchBillTitle} disabled={loading}>
+                {loading ? <CircularProgress size={24} /> : 'Fetch Title'}
+              </Button>
+            </Box>
+          )}
+
           <TextField
             name="title"
             label="Title"
             fullWidth
             value={formData.title}
             onChange={handleChange}
+            InputProps={{
+              readOnly: formData.type === 'experiment',
+            }}
           />
+
+          {error && <Alert severity="error">{error}</Alert>}
 
           {formData.type === 'recommendation' ? (
             <>
@@ -135,7 +192,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
               rows={4}
               value={formData.content}
               onChange={handleChange}
-              disabled={formData.type === 'experiment'}
+              placeholder={formData.type === 'experiment' ? 'Will be auto-populated with bill text later' : ''}
             />
           )}
 
@@ -170,7 +227,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained">
+        <Button onClick={handleSubmit} variant="contained" disabled={loading}>
           Create
         </Button>
       </DialogActions>
