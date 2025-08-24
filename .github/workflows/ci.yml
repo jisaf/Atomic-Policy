@@ -9,9 +9,9 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - name: Check out code
-  #       uses: actions/checkout@v3
+  #       uses: actions/checkout@v4
   #     - name: Set up Node.js
-  #       uses: actions/setup-node@v3
+  #       uses: actions/setup-node@v4
   #       with:
   #         node-version: '18'
   #     - name: Install dependencies
@@ -29,9 +29,9 @@ jobs:
       pull-requests: write
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
       - name: Install dependencies
@@ -39,26 +39,26 @@ jobs:
       - name: Build application
         run: npm run build
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v2
         with:
           path: ./dist
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v2
       - name: Find Comment
         uses: peter-evans/find-comment@v2
         id: fc
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: 'Vercel Preview Deployment'
+          body-includes: 'GitHub Pages Preview Deployment'
       - name: Create or update comment
         uses: peter-evans/create-or-update-comment@v2
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            **Vercel Preview Deployment**
+            **GitHub Pages Preview Deployment**
 
             ✅ Preview deployment successful!
 
