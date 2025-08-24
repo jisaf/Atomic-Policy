@@ -44,7 +44,7 @@ jobs:
           path: ./dist
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v3
+        uses: actions/deploy-pages@v4
       - name: Find Comment
         uses: peter-evans/find-comment@v2
         id: fc
