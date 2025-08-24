@@ -1,6 +1,9 @@
-name: Run Tests and Deploy Preview
+name: Build, Test, and Deploy
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -19,14 +22,13 @@ jobs:
       - name: Run tests
         run: npm test
 
-  deploy-preview:
+  deploy-production:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-      pull-requests: write
+    environment:
+      name: production
+      url: https://atomic-policy.vercel.app
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -34,35 +36,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install dependencies
-        run: npm install
-      - name: Build application
-        run: npm run build
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-      - name: Find Comment
-        uses: peter-evans/find-comment@v2
-        id: fc
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: 'GitHub Pages Preview Deployment'
-      - name: Create or update comment
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          comment-id: ${{ steps.fc.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            **GitHub Pages Preview Deployment**
-
-            ✅ Preview deployment successful!
-
-            - **URL:** ${{ steps.deployment.outputs.page_url }}
-
-            *Last updated: ${{ github.event.pull_request.updated_at }}*
-          edit-mode: replace
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+      - name: Pull Vercel Project Settings
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build Project
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project to Vercel
+        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
