@@ -1,4 +1,27 @@
 import React, { useState } from 'react';
+import {
+  Modal, Box, Typography, Select, MenuItem, TextField, Button,
+  FormControl, InputLabel, Grid, CircularProgress, Alert,
+  List, ListItem, ListItemText, IconButton
+} from '@mui/material';
+import { Link, LinkOff } from '@mui/icons-material';
+
+
+const modalStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: '90%',
+  maxWidth: 700,
+  bgcolor: 'background.paper',
+  boxShadow: 24,
+  p: 0,
+  borderRadius: 2,
+  display: 'flex',
+  flexDirection: 'column',
+  maxHeight: '90vh',
+};
 
 const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
   const [formData, setFormData] = useState({
@@ -82,111 +105,90 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold">Create New Atom</h2>
-        </div>
-        <div className="p-4 space-y-4 overflow-y-auto">
-          {/* Atom Type Selector */}
-          <select
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value, title: '', content: '' })}
-            className="w-full p-2 border rounded"
-          >
-            {Object.entries(atomTypes).map(([key, type]) => (
-              <option key={key} value={key}>{type.label}</option>
-            ))}
-          </select>
+    <Modal open={true} onClose={onClose}>
+      <Box sx={modalStyle}>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6">Create New Atom</Typography>
+        </Box>
+        <Box sx={{ p: 3, overflowY: 'auto', spaceY: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Atom Type</InputLabel>
+            <Select
+              value={formData.type}
+              label="Atom Type"
+              onChange={(e) => setFormData({ ...formData, type: e.target.value, title: '', content: '' })}
+            >
+              {Object.entries(atomTypes).map(([key, type]) => (
+                <MenuItem key={key} value={key}>{type.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-          {/* Dynamic Form Fields */}
           {formData.type === 'experiment' ? (
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-2">
-                <input
-                  type="text"
-                  placeholder="Congress (e.g., 119)"
-                  value={formData.congress}
-                  onChange={e => setFormData({...formData, congress: e.target.value})}
-                  className="p-2 border rounded"
-                />
-                <select
-                  value={formData.billType}
-                  onChange={e => setFormData({...formData, billType: e.target.value})}
-                  className="p-2 border rounded"
-                >
-                  <option value="hr">H.R.</option>
-                  <option value="s">S.</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="Bill Number"
-                  value={formData.billNumber}
-                  onChange={e => setFormData({...formData, billNumber: e.target.value})}
-                  className="p-2 border rounded"
-                />
-              </div>
-              <button onClick={handleFetchBillTitle} className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600">Fetch Bill Title</button>
-              {loading && <p>Loading...</p>}
-              {error && <p className="text-red-500">{error}</p>}
-              <input type="text" value={formData.title} readOnly placeholder="Title (auto-generated)" className="w-full p-2 border rounded bg-gray-100" />
-            </div>
+            <Box sx={{ mt: 2, spaceY: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <TextField fullWidth label="Congress" value={formData.congress} onChange={e => setFormData({...formData, congress: e.target.value})} />
+                </Grid>
+                <Grid item xs={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Bill Type</InputLabel>
+                    <Select label="Bill Type" value={formData.billType} onChange={e => setFormData({...formData, billType: e.target.value})}>
+                      <MenuItem value="hr">H.R.</MenuItem>
+                      <MenuItem value="s">S.</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField fullWidth label="Bill Number" value={formData.billNumber} onChange={e => setFormData({...formData, billNumber: e.target.value})} />
+                </Grid>
+              </Grid>
+              <Button onClick={handleFetchBillTitle} variant="contained" sx={{ mt: 2, width: '100%' }} disabled={loading}>
+                {loading ? <CircularProgress size={24} /> : 'Fetch Bill Title'}
+              </Button>
+              {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+              <TextField fullWidth label="Title (auto-generated)" value={formData.title} InputProps={{ readOnly: true }} sx={{ mt: 2 }} />
+            </Box>
           ) : (
-            <>
-              <input
-                type="text"
-                placeholder="Title"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full p-2 border rounded"
-              />
+            <Box sx={{ mt: 2, spaceY: 2 }}>
+              <TextField fullWidth label="Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} sx={{ mb: 2 }}/>
               {formData.type === 'recommendation' ? (
                 <>
-                  <input type="text" placeholder="File Path or URL" value={formData.fileReference} onChange={e => setFormData({...formData, fileReference: e.target.value})} className="w-full p-2 border rounded" />
-                  <textarea placeholder="Description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-2 border rounded h-24"></textarea>
+                  <TextField fullWidth label="File Path or URL" value={formData.fileReference} onChange={e => setFormData({...formData, fileReference: e.target.value})} sx={{ mb: 2 }} />
+                  <TextField fullWidth multiline rows={4} label="Description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
                 </>
               ) : (
-                <textarea
-                  placeholder="Content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({...formData, content: e.target.value})}
-                  className="w-full p-2 border rounded h-24"
-                ></textarea>
+                <TextField fullWidth multiline rows={4} label="Content" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} />
               )}
-            </>
+            </Box>
           )}
 
-          <input
-            type="text"
-            placeholder="Tags (comma-separated)"
-            onChange={(e) => setFormData({...formData, tags: e.target.value})}
-            className="w-full p-2 border rounded"
-          />
+          <TextField fullWidth label="Tags (comma-separated)" onChange={(e) => setFormData({...formData, tags: e.target.value})} sx={{ my: 2 }}/>
 
-          {/* Link to existing atoms */}
-          <div>
-            <h3 className="font-medium mb-2">Link to existing atoms</h3>
-            <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
+          <Box>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>Link to existing atoms</Typography>
+            <List dense sx={{ maxHeight: 150, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
               {existingAtoms.map(atom => (
-                <div key={atom.id} className="flex items-center justify-between p-1 hover:bg-gray-100 rounded">
-                  <span>{atom.title}</span>
-                  <button
-                    onClick={() => toggleLink(atom.id)}
-                    className={`px-2 py-0.5 text-xs rounded ${formData.linkedTo.includes(atom.id) ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  >
-                    {formData.linkedTo.includes(atom.id) ? 'Linked' : 'Link'}
-                  </button>
-                </div>
+                <ListItem
+                  key={atom.id}
+                  secondaryAction={
+                    <IconButton edge="end" onClick={() => toggleLink(atom.id)}>
+                      {formData.linkedTo.includes(atom.id) ? <LinkOff color="error"/> : <Link />}
+                    </IconButton>
+                  }
+                >
+                  <ListItemText primary={atom.title} />
+                </ListItem>
               ))}
-            </div>
-          </div>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded bg-gray-200">Cancel</button>
-          <button onClick={handleSubmit} className="px-4 py-2 rounded bg-blue-600 text-white">Create</button>
-        </div>
-      </div>
-    </div>
+            </List>
+          </Box>
+        </Box>
+        <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained">Create</Button>
+        </Box>
+      </Box>
+    </Modal>
   );
 };
 

@@ -1,45 +1,80 @@
 import React from 'react';
+import {
+  Modal, Box, Typography, Chip, Button, Select, MenuItem,
+  List, ListItem, ListItemText, Divider, IconButton, FormControl, InputLabel
+} from '@mui/material';
+import { Close } from '@mui/icons-material';
+
+const modalStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: '90%',
+  maxWidth: 700,
+  bgcolor: 'background.paper',
+  boxShadow: 24,
+  p: 0,
+  borderRadius: 2,
+  display: 'flex',
+  flexDirection: 'column',
+  maxHeight: '90vh',
+};
 
 const AtomDetailModal = ({ atom, onClose, atomTypes, atoms, onLink }) => {
   if (!atom) return null;
   const typeConfig = atomTypes[atom.type];
+  const IconComponent = typeConfig.icon;
   const linkedAtoms = (atom.linkedTo || []).map(id => atoms.find(a => a.id === id)).filter(Boolean);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-lg font-semibold">{atom.title}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800">&times;</button>
-        </div>
-        <div className="p-4 space-y-4 overflow-y-auto">
-          <div className="flex items-center gap-2">
-            <typeConfig.icon size={16} />
-            <span className="font-medium">{typeConfig.label}</span>
-          </div>
-          <p className="text-gray-700">{atom.content}</p>
-          <div className="flex flex-wrap gap-2">
-            {atom.tags.map(tag => <span key={tag} className="bg-gray-200 px-2 py-1 rounded-full text-sm">{tag}</span>)}
-          </div>
-          <div>
-            <h3 className="font-medium">Linked Atoms</h3>
-            <ul className="list-disc pl-5">
-              {linkedAtoms.map(linked => <li key={linked.id}>{linked.title}</li>)}
-            </ul>
-          </div>
-        </div>
-        <div className="p-4 border-t">
-          {/* Simple linking UI for demonstration */}
-          <h4 className="font-medium mb-2">Link another atom</h4>
-          <select onChange={(e) => onLink(atom.id, e.target.value)} className="w-full p-2 border rounded">
-            <option>Select an atom to link</option>
-            {atoms.filter(a => a.id !== atom.id && !(atom.linkedTo || []).includes(a.id)).map(a => (
-              <option key={a.id} value={a.id}>{a.title}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-    </div>
+    <Modal open={true} onClose={onClose}>
+      <Box sx={modalStyle}>
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6">{atom.title}</Typography>
+          <IconButton onClick={onClose}>
+            <Close />
+          </IconButton>
+        </Box>
+        <Box sx={{ p: 3, overflowY: 'auto' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <IconComponent size={20} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>{typeConfig.label}</Typography>
+          </Box>
+          <Typography paragraph sx={{ whiteSpace: 'pre-wrap' }}>{atom.content}</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+            {atom.tags.map(tag => <Chip key={tag} label={tag} />)}
+          </Box>
+          <Divider sx={{ my: 2 }} />
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>Linked Atoms</Typography>
+            <List dense>
+              {linkedAtoms.length > 0 ? (
+                linkedAtoms.map(linked => <ListItem key={linked.id}><ListItemText primary={linked.title} /></ListItem>)
+              ) : (
+                <ListItem><ListItemText secondary="No linked atoms." /></ListItem>
+              )}
+            </List>
+          </Box>
+        </Box>
+        <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+          <FormControl fullWidth>
+            <InputLabel>Link another atom</InputLabel>
+            <Select
+              label="Link another atom"
+              onChange={(e) => onLink(atom.id, e.target.value)}
+              defaultValue=""
+            >
+              {atoms
+                .filter(a => a.id !== atom.id && !(atom.linkedTo || []).includes(a.id))
+                .map(a => (
+                  <MenuItem key={a.id} value={a.id}>{a.title}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      </Box>
+    </Modal>
   );
 };
 
