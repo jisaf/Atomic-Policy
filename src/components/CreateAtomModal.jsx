@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, Box, Typography, Select, MenuItem, TextField, Button,
   FormControl, InputLabel, Grid, CircularProgress, Alert,
-  List, ListItem, ListItemText, IconButton
+  List, ListItem, ListItemText, IconButton, Autocomplete
 } from '@mui/material';
 import { Link, LinkOff } from '@mui/icons-material';
 
@@ -40,14 +40,20 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
   const [error, setError] = useState('');
   const [manualEntry, setManualEntry] = useState(false);
+  const [sections, setSections] = useState([]);
+  const [selectedSection, setSelectedSection] = useState(null);
 
   const handleFetchBillTitle = async () => {
     if (!formData.billNumber || !formData.billType || !formData.congress) return;
     setLoading(true);
     setError('');
     setManualEntry(false);
+    setSections([]);
+    setSelectedSection(null);
+
     try {
       const { congress, billType, billNumber } = formData;
       const response = await fetch(`/api/congress?congress=${congress}&billType=${billType}&billNumber=${billNumber}`);
@@ -55,6 +61,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
 
       if (response.ok) {
         setFormData(prev => ({ ...prev, billTitle: data.title, title: `${billType.toUpperCase()}${billNumber} - ${data.title}` }));
+        fetchSections(congress, billType, billNumber);
       } else {
         setError(data.error || 'Bill not found. You can enter the title manually.');
         setManualEntry(true);
@@ -67,6 +74,37 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
       setLoading(false);
     }
   };
+
+  const fetchSections = async (congress, billType, billNumber) => {
+    setSectionsLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/congress?congress=${congress}&billType=${billType}&billNumber=${billNumber}&text=true`);
+      const data = await response.json();
+      if (response.ok && data.sections) {
+        setSections(data.sections);
+        if (data.sections.length === 0) {
+          setError('No sections could be automatically extracted from this bill.');
+        }
+      } else {
+        setError(data.error || 'Could not load sections for this bill.');
+      }
+    } catch (err) {
+      setError('Failed to fetch bill sections: ' + err.message);
+    } finally {
+      setSectionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedSection) {
+      setFormData(prev => ({
+        ...prev,
+        sectionTitle: selectedSection.header,
+        content: selectedSection.content
+      }));
+    }
+  }, [selectedSection]);
 
   const handleSubmit = () => {
     if (!formData.title.trim()) return;
@@ -177,6 +215,40 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
                 </>
               ) : (
                 <TextField fullWidth label="Title (auto-generated)" value={formData.title} InputProps={{ readOnly: true }} sx={{ mt: 2 }} data-testid="title-auto-generated" />
+              )}
+
+              {sectionsLoading && <CircularProgress sx={{ mt: 2 }} />}
+              {!manualEntry && sections.length > 0 && (
+                <Autocomplete
+                  sx={{ mt: 2 }}
+                  options={sections}
+                  getOptionLabel={(option) => `${option.number} ${option.header}`}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      <Box>
+                        <Typography variant="subtitle2">{option.number} {option.header}</Typography>
+                        <Typography variant="body2" color="text.secondary">{option.content.substring(0, 100)}...</Typography>
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => <TextField {...params} label="Select a Section" />}
+                  onChange={(event, newValue) => {
+                    setSelectedSection(newValue);
+                  }}
+                  value={selectedSection}
+                />
+              )}
+
+              {selectedSection && (
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  label="Section Content"
+                  value={formData.content}
+                  onChange={e => setFormData({ ...formData, content: e.target.value })}
+                  sx={{ mt: 2 }}
+                />
               )}
             </Box>
           ) : (
