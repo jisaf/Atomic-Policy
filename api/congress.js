@@ -31,7 +31,9 @@ const parseSectionsFromXml = (xmlText) => {
         ignoreAttributes: false,
         attributeNamePrefix: "@_",
         textNodeName: "#text",
-        allowBooleanAttributes: true
+        allowBooleanAttributes: true,
+        parseNodeValue: true,
+        trimValues: true,
     });
     const jsonObj = parser.parse(xmlText);
 
@@ -41,34 +43,48 @@ const parseSectionsFromXml = (xmlText) => {
 
     if (!billRoot) return [];
 
+    const getText = (node) => {
+        if (!node) return '';
+        if (typeof node === 'string') return node;
+        if (node['#text']) return node['#text'];
+        // Fallback for cases where text is nested in other tags
+        let text = '';
+        const findText = (n) => {
+            if (typeof n === 'string') {
+                text += n + ' ';
+            } else if (n && n['#text']) {
+                text += n['#text'] + ' ';
+            } else if (typeof n === 'object' && n !== null) {
+                Object.values(n).forEach(findText);
+            }
+        };
+        findText(node);
+        return text;
+    };
+
     const traverse = (node) => {
         if (node && node.section) {
             const sectionArray = Array.isArray(node.section) ? node.section : [node.section];
             sectionArray.forEach(section => {
-                if (section && section.header && section.enum) {
-                    let textContent = '';
-                    const extractText = (subNode) => {
-                        if (typeof subNode === 'string') {
-                            textContent += subNode + ' ';
-                        } else if (subNode && subNode['#text']) {
-                            textContent += subNode['#text'] + ' ';
-                        } else if (typeof subNode === 'object' && subNode !== null) {
-                            Object.values(subNode).forEach(extractText);
-                        }
-                    };
+                if (section && section.enum) { // We only require enum now
+                    const headerText = getText(section.header);
+                    let contentText = '';
 
                     if (section.text) {
-                        extractText(section.text);
+                        contentText = getText(section.text);
                     } else {
-                        textContent = section.header;
+                        // If there's no dedicated text block, the header might be all there is.
+                        contentText = headerText;
                     }
 
-                    sections.push({
-                        id: section['@_id'] || `section-${section.enum}`,
-                        number: section.enum,
-                        header: section.header.trim(),
-                        content: textContent.trim(),
-                    });
+                    if (headerText) { // Only add sections that have a header
+                        sections.push({
+                            id: section['@_id'] || `section-${section.enum}`,
+                            number: String(section.enum),
+                            header: headerText.trim(),
+                            content: contentText.trim(),
+                        });
+                    }
                 }
             });
         }
