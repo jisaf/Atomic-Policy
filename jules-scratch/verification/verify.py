@@ -66,6 +66,18 @@ def run(playwright):
     expect(page.get_by_label("Congress")).to_have_value("118")
     expect(page.locator("ul.MuiList-root").get_by_text(fourth_atom_title)).to_be_visible()
 
+    # Link atoms for flowchart view
+    page.get_by_role("button", name="Close").click() # Close the create modal
+    page.locator("div.MuiCard-root:has-text('HR123')").click()
+    link_atom_form_control = page.locator("div.MuiFormControl-root:has-text('Link another atom')")
+    link_atom_form_control.get_by_role("combobox").click()
+    page.get_by_role("option", name="Plain Language Title").click()
+    page.get_by_test_id("CloseIcon").click()
+
+    # Switch to flowchart view
+    page.get_by_role("button", name="Flow").click()
+
+    # Take a screenshot of the flowchart
     page.screenshot(path="jules-scratch/verification/verification.png")
 
     browser.close()

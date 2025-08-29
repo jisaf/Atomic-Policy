@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, Box, Typography, Select, MenuItem, TextField, Button,
   FormControl, InputLabel, Grid, CircularProgress, Alert,
@@ -23,8 +23,8 @@ const modalStyle = {
   maxHeight: '90vh',
 };
 
-const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
-  const [formData, setFormData] = useState({
+const getInitialFormData = (lastAtom, lastBill, atomTypes) => {
+  const newFormData = {
     type: 'experiment',
     title: '',
     billType: 'hr',
@@ -36,8 +36,26 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     fileReference: '',
     description: '',
     tags: '',
-    linkedTo: []
-  });
+    linkedTo: [],
+  };
+  const atomTypeKeys = Object.keys(atomTypes);
+
+  if (lastAtom) {
+    const lastTypeIndex = atomTypeKeys.indexOf(lastAtom.type);
+    newFormData.type = lastTypeIndex < atomTypeKeys.length - 1 ? atomTypeKeys[lastTypeIndex + 1] : atomTypeKeys[0];
+    newFormData.linkedTo = [lastAtom.id];
+  }
+
+  if (newFormData.type === 'experiment' && lastBill) {
+    newFormData.billType = lastBill.billType;
+    newFormData.billNumber = lastBill.billNumber;
+    newFormData.congress = lastBill.congress;
+  }
+  return newFormData;
+};
+
+const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms, lastBill, lastAtom }) => {
+  const [formData, setFormData] = useState(() => getInitialFormData(lastAtom, lastBill, atomTypes));
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -79,7 +97,9 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     };
 
     if (formData.type === 'experiment') {
-      atomData.billNumber = `${formData.billType.toUpperCase()}${formData.billNumber}`;
+      atomData.billNumber = formData.billNumber;
+      atomData.billType = formData.billType;
+      atomData.congress = formData.congress;
       atomData.billTitle = formData.billTitle;
       atomData.sectionTitle = formData.sectionTitle;
       atomData.content = formData.content;
