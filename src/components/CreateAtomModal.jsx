@@ -159,6 +159,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
               value={formData.type}
               label="Atom Type"
               onChange={(e) => setFormData({ ...formData, type: e.target.value, title: '', content: '' })}
+              data-testid="atom-type-select"
             >
               {Object.entries(atomTypes).map(([key, type]) => (
                 <MenuItem key={key} value={key}>{type.label}</MenuItem>
