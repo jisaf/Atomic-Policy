@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, Box, Typography, Select, MenuItem, TextField, Button,
   FormControl, InputLabel, Grid, CircularProgress, Alert,
@@ -23,7 +23,7 @@ const modalStyle = {
   maxHeight: '90vh',
 };
 
-const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
+const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms, lastBill, lastAtom }) => {
   const [formData, setFormData] = useState({
     type: 'experiment',
     title: '',
@@ -38,6 +38,32 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     tags: '',
     linkedTo: []
   });
+
+  useEffect(() => {
+    const atomTypeKeys = Object.keys(atomTypes);
+    let nextType = atomTypeKeys[0];
+    let newLinkedTo = [];
+
+    if (lastAtom) {
+      const lastTypeIndex = atomTypeKeys.indexOf(lastAtom.type);
+      nextType = lastTypeIndex < atomTypeKeys.length - 1 ? atomTypeKeys[lastTypeIndex + 1] : atomTypeKeys[0];
+      newLinkedTo = [lastAtom.id];
+    }
+
+    const initialFormData = {
+      ...formData,
+      type: nextType,
+      linkedTo: newLinkedTo,
+    };
+
+    if (nextType === 'experiment' && lastBill) {
+      initialFormData.billType = lastBill.billType;
+      initialFormData.billNumber = lastBill.billNumber;
+      initialFormData.congress = lastBill.congress;
+    }
+
+    setFormData(initialFormData);
+  }, [lastAtom, lastBill, atomTypes]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -79,7 +105,9 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     };
 
     if (formData.type === 'experiment') {
-      atomData.billNumber = `${formData.billType.toUpperCase()}${formData.billNumber}`;
+      atomData.billNumber = formData.billNumber;
+      atomData.billType = formData.billType;
+      atomData.congress = formData.congress;
       atomData.billTitle = formData.billTitle;
       atomData.sectionTitle = formData.sectionTitle;
       atomData.content = formData.content;
@@ -111,7 +139,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
           <Typography variant="h6">Create New Atom</Typography>
         </Box>
         <Box sx={{ p: 3, overflowY: 'auto', spaceY: 2 }}>
-          <FormControl fullWidth>
+          <FormControl fullWidth data-testid="atom-type-form-control">
             <InputLabel>Atom Type</InputLabel>
             <Select
               value={formData.type}

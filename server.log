@@ -1,1 +1,3 @@
 Server listening at http://localhost:3001
+Received request: GET /govinfo?congress=117&billType=hr&billNumber=5376
+Received request: GET /bill-text?congress=117&billType=hr&billNumber=5376
