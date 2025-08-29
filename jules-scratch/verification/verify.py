@@ -1,37 +1,29 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 def run(playwright):
     browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
-
-    # Add a listener for console messages
-    page.on("console", lambda msg: print(f"CONSOLE: {msg.text}"))
-
-    page.goto("http://localhost:5173")
-
-    # Click the "Add Atom" button
+    page.goto("http://localhost:5173/")
     page.get_by_role("button", name="Add Atom").click()
 
-    # Wait for the modal to appear
-    page.wait_for_selector('h2:has-text("Create New Atom")')
+    page.wait_for_timeout(1000)
+    page.get_by_label("Bill Number").click()
+    page.get_by_label("Bill Number").fill("1")
 
-    # Select the "Source text" atom type
-    page.locator('select').first.select_option('experiment')
+    page.get_by_role("button", name="Manual Entry").click()
 
-    # Fill in the bill details
-    page.get_by_placeholder("Congress (e.g., 119)").fill("119")
-    page.locator('div.grid > select').select_option('hr')
-    page.get_by_placeholder("Bill Number").fill("100")
+    page.wait_for_timeout(1000)
 
-    # Click the "Fetch Bill Title" button
-    page.get_by_role("button", name="Fetch Bill Title").click()
+    bill_title_input = page.get_by_placeholder("Enter Bill Title")
+    expect(bill_title_input).to_be_visible()
+    bill_title_input.click()
+    bill_title_input.fill("A manually entered title")
 
-    # Wait for the title to be populated in the readonly input
-    page.wait_for_function("() => document.querySelector('input[readonly]').value.startsWith('hr100 - A bill to amend rule 23')", timeout=15000)
+    atom_title_input = page.get_by_placeholder("Enter Atom Title")
+    expect(atom_title_input).to_have_value("HR1 - A manually entered title")
 
-    # Take a screenshot
-    page.screenshot(path="jules-scratch/verification/verification.png")
+    page.screenshot(path="jules-scratch/verification/manual-entry-test.png")
 
     browser.close()
 

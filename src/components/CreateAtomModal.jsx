@@ -41,24 +41,28 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [manualEntry, setManualEntry] = useState(false);
 
   const handleFetchBillTitle = async () => {
     if (!formData.billNumber || !formData.billType || !formData.congress) return;
     setLoading(true);
     setError('');
+    setManualEntry(false);
     try {
       const { congress, billType, billNumber } = formData;
-      const response = await fetch(`/api/govinfo?congress=${congress}&billType=${billType}&billNumber=${billNumber}`);
+      const response = await fetch(`/api/congress?congress=${congress}&billType=${billType}&billNumber=${billNumber}`);
       const data = await response.json();
 
       if (response.ok) {
         setFormData(prev => ({ ...prev, billTitle: data.title, title: `${billType.toUpperCase()}${billNumber} - ${data.title}` }));
       } else {
-        setError(data.error || 'Bill not found.');
+        setError(data.error || 'Bill not found. You can enter the title manually.');
+        setManualEntry(true);
         setFormData(prev => ({ ...prev, billTitle: '', title: '' }));
       }
     } catch (err) {
       setError('Failed to fetch bill title: ' + err.message);
+      setManualEntry(true);
     } finally {
       setLoading(false);
     }
@@ -143,11 +147,37 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
                   <TextField fullWidth label="Bill Number" value={formData.billNumber} onChange={e => setFormData({...formData, billNumber: e.target.value})} />
                 </Grid>
               </Grid>
-              <Button onClick={handleFetchBillTitle} variant="contained" sx={{ mt: 2, width: '100%' }} disabled={loading}>
-                {loading ? <CircularProgress size={24} /> : 'Fetch Bill Title'}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button onClick={handleFetchBillTitle} variant="contained" sx={{ flexGrow: 1 }} disabled={loading}>
+                  {loading ? <CircularProgress size={24} /> : 'Fetch Bill Title'}
+                </Button>
+                <Button onClick={() => setManualEntry(!manualEntry)} variant="outlined">
+                  {manualEntry ? 'Disable Manual Entry' : 'Manual Entry'}
+                </Button>
+              </Box>
               {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-              <TextField fullWidth label="Title (auto-generated)" value={formData.title} InputProps={{ readOnly: true }} sx={{ mt: 2 }} />
+              {manualEntry ? (
+                <>
+                  <TextField
+                    fullWidth
+                    label="Bill Title"
+                    placeholder="Enter Bill Title"
+                    value={formData.billTitle}
+                    onChange={e => setFormData({...formData, billTitle: e.target.value, title: `${formData.billType.toUpperCase()}${formData.billNumber} - ${e.target.value}`})}
+                    sx={{ mt: 2 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Atom Title"
+                    placeholder="Enter Atom Title"
+                    value={formData.title}
+                    onChange={e => setFormData({...formData, title: e.target.value})}
+                    sx={{ mt: 2 }}
+                  />
+                </>
+              ) : (
+                <TextField fullWidth label="Title (auto-generated)" value={formData.title} InputProps={{ readOnly: true }} sx={{ mt: 2 }} data-testid="title-auto-generated" />
+              )}
             </Box>
           ) : (
             <Box sx={{ mt: 2, spaceY: 2 }}>
