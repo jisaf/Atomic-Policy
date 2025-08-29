@@ -23,7 +23,15 @@ const modalStyle = {
   maxHeight: '90vh',
 };
 
-const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
+const getNextAtomType = (lastCreatedAtom, atomTypes) => {
+  if (!lastCreatedAtom) return 'experiment';
+  const atomTypeKeys = Object.keys(atomTypes);
+  const lastTypeIndex = atomTypeKeys.indexOf(lastCreatedAtom.type);
+  const nextTypeIndex = (lastTypeIndex + 1) % atomTypeKeys.length;
+  return atomTypeKeys[nextTypeIndex];
+};
+
+const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms, lastCreatedAtom }) => {
   const [formData, setFormData] = useState({
     type: 'experiment',
     title: '',
@@ -45,6 +53,33 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
   const [manualEntry, setManualEntry] = useState(false);
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
+
+  useEffect(() => {
+    const nextType = getNextAtomType(lastCreatedAtom, atomTypes);
+
+    setFormData(prevData => {
+      const initialData = {
+        ...prevData,
+        type: nextType,
+        title: '',
+        content: '',
+        fileReference: '',
+        description: '',
+      };
+
+      if (lastCreatedAtom && lastCreatedAtom.type === 'experiment' && nextType === 'experiment') {
+        const billNumberMatch = lastCreatedAtom.billNumber.match(/([a-zA-Z]+)(\d+)/);
+        if (billNumberMatch) {
+          initialData.billType = billNumberMatch[1].toLowerCase();
+          initialData.billNumber = billNumberMatch[2];
+        }
+        initialData.congress = lastCreatedAtom.congress || '119';
+        initialData.billTitle = lastCreatedAtom.billTitle;
+        initialData.title = `${lastCreatedAtom.billNumber} - ${lastCreatedAtom.billTitle}`;
+      }
+      return initialData;
+    });
+  }, [lastCreatedAtom, atomTypes]);
 
   const handleFetchBillTitle = async () => {
     if (!formData.billNumber || !formData.billType || !formData.congress) return;
