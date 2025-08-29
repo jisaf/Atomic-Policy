@@ -64,6 +64,7 @@ const AtomDetailModal = ({ atom, onClose, atomTypes, atoms, onLink }) => {
               label="Link another atom"
               onChange={(e) => onLink(atom.id, e.target.value)}
               defaultValue=""
+              data-testid="link-atom-select"
             >
               {atoms
                 .filter(a => a.id !== atom.id && !(atom.linkedTo || []).includes(a.id))

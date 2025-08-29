@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, createRef } from 'react';
 import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
 
-const FlowchartView = ({ atoms, atomTypes, onAtomClick, allAtoms }) => {
+const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
   const containerRef = useRef();
   const [lines, setLines] = useState([]);
   const itemRefs = useRef(new Map());
@@ -54,12 +54,12 @@ const FlowchartView = ({ atoms, atomTypes, onAtomClick, allAtoms }) => {
     }
     return () => resizeObserver.disconnect();
 
-  }, [atoms, allAtoms]);
+  }, [atoms, filteredAtoms]);
 
   const groupedAtoms = Object.keys(atomTypes).map(type => ({
     type,
     label: atomTypes[type].label,
-    atoms: atoms.filter(atom => atom.type === type),
+    atoms: filteredAtoms.filter(atom => atom.type === type),
   }));
 
   return (
@@ -75,13 +75,13 @@ const FlowchartView = ({ atoms, atomTypes, onAtomClick, allAtoms }) => {
         backgroundColor: 'white',
       }}
     >
-      <Grid container spacing={3} wrap="nowrap">
+      <Grid container spacing={8} wrap="nowrap">
         {groupedAtoms.map(({ type, label, atoms: groupAtoms }) => (
           <Grid item key={type} xs={3} sx={{ minWidth: 250 }}>
             <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
               {label}
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {groupAtoms.map(atom => (
                 <Card
                   key={atom.id}
@@ -94,6 +94,9 @@ const FlowchartView = ({ atoms, atomTypes, onAtomClick, allAtoms }) => {
                     '&:hover': {
                       boxShadow: 3,
                     },
+                    position: 'relative',
+                    zIndex: 1,
+                    backgroundColor: 'white',
                   }}
                 >
                   <CardContent>
@@ -134,22 +137,23 @@ const FlowchartView = ({ atoms, atomTypes, onAtomClick, allAtoms }) => {
           width: '100%',
           height: '100%',
           pointerEvents: 'none',
+          zIndex: 0,
         }}
       >
         {lines.map(line => (
           <path
             key={line.key}
-            d={`M ${line.x1} ${line.y1} C ${line.x1 + 50} ${line.y1} ${line.x2 - 50} ${line.y2} ${line.x2} ${line.y2}`}
-            stroke="#94a3b8"
+            d={`M ${line.x1} ${line.y1} C ${line.x1 + 100} ${line.y1} ${line.x2 - 100} ${line.y2} ${line.x2} ${line.y2}`}
+            stroke="#475569"
             strokeWidth="2"
             fill="none"
           />
         ))}
       </svg>
-      {atoms.length === 0 && (
+      {filteredAtoms.length === 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: 200 }}>
           <Typography variant="h6" color="text.secondary">
-            {allAtoms.length === 0
+            {atoms.length === 0
               ? 'No atoms yet. Create your first one!'
               : 'No atoms match your search.'}
           </Typography>

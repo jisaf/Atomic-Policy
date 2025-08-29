@@ -217,10 +217,10 @@ const AtomicUXApp = () => {
             </Grid>
           ) : (
             <FlowchartView
-              atoms={filteredAtoms}
+              atoms={atoms}
+              filteredAtoms={filteredAtoms}
               atomTypes={atomTypes}
               onAtomClick={setSelectedAtom}
-              allAtoms={atoms}
             />
           )}
         </Container>
