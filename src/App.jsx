@@ -55,8 +55,6 @@ const AtomicUXApp = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedAtom, setSelectedAtom] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
-  const [lastBill, setLastBill] = useState(null);
-  const [lastAtom, setLastAtom] = useState(null);
 
   const atomTypes = {
     experiment: {
@@ -104,15 +102,7 @@ const AtomicUXApp = () => {
       timestamp: new Date().toISOString(),
       ...atomData,
     };
-    if (atomData.type === 'experiment') {
-      setLastBill({
-        billType: atomData.billType,
-        billNumber: atomData.billNumber,
-        congress: atomData.congress,
-      });
-    }
     setAtoms([...atoms, newAtom]);
-    setLastAtom(newAtom);
     setShowCreateModal(false);
   };
 
@@ -241,8 +231,6 @@ const AtomicUXApp = () => {
             onCreate={createAtom}
             atomTypes={atomTypes}
             existingAtoms={atoms}
-            lastBill={lastBill}
-            lastAtom={lastAtom}
           />
         )}
 
