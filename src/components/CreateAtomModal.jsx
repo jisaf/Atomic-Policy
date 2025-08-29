@@ -77,13 +77,17 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
 
   const fetchSections = async (congress, billType, billNumber) => {
     setSectionsLoading(true);
+    setError('');
     try {
       const response = await fetch(`/api/congress?congress=${congress}&billType=${billType}&billNumber=${billNumber}&text=true`);
       const data = await response.json();
-      if (response.ok) {
-        setSections(data.sections || []);
+      if (response.ok && data.sections) {
+        setSections(data.sections);
+        if (data.sections.length === 0) {
+          setError('No sections could be automatically extracted from this bill.');
+        }
       } else {
-        setError(data.error || 'Could not load sections.');
+        setError(data.error || 'Could not load sections for this bill.');
       }
     } catch (err) {
       setError('Failed to fetch bill sections: ' + err.message);

@@ -1,5 +1,7 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const { XMLParser } = require('fast-xml-parser');
+const { htmlToText } = require('html-to-text');
+const PDFParser = require("pdf2json");
 
 const CONGRESS_API_KEY = 'Z7n4T557iCNAIm9gzI5cFwuVUDhGuOaBKgNEkOQO';
 const CONGRESS_API_BASE = 'https://api.congress.gov/v3';
@@ -8,67 +10,80 @@ const fetchWithHeaders = (url) => fetch(url, {
   headers: { 'User-Agent': 'my-app/1.0' }
 });
 
-const parseSections = (xmlText) => {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: "@_",
-    textNodeName: "#text",
-    allowBooleanAttributes: true
-  });
-  const jsonObj = parser.parse(xmlText);
-
+const parseSectionsFromText = (text) => {
   const sections = [];
-
-  const mainRoot = jsonObj['bill-status'] || jsonObj['resolution-status'] || jsonObj.bill;
-  const billRoot = mainRoot?.bill;
-
-  if (!billRoot) return [];
-
-  const traverse = (node) => {
-    if (node.section) {
-      const sectionArray = Array.isArray(node.section) ? node.section : [node.section];
-      sectionArray.forEach(section => {
-        const header = section.header || '';
-        const number = section.enum || '';
-        let textContent = '';
-
-        const extractText = (subNode) => {
-          if (typeof subNode === 'string') {
-            textContent += subNode + ' ';
-          } else if (subNode['#text']) {
-            textContent += subNode['#text'] + ' ';
-          } else if (typeof subNode === 'object' && subNode !== null) {
-            Object.values(subNode).forEach(extractText);
-          }
-        };
-
-        if (section.text) {
-          extractText(section.text);
-        } else if (section.header && section.enum) {
-          // This is a placeholder for sections that have a header and enum but no direct text
-          textContent = header;
-        }
-
-        if (number && header) {
-          sections.push({
-            id: section['@_id'] || `section-${number}`,
-            number: number,
-            header: header.trim(),
-            content: textContent.trim(),
-          });
-        }
-      });
-    }
-    // Continue traversal
-    Object.values(node).forEach(value => {
-      if (typeof value === 'object' && value !== null) {
-        traverse(value);
-      }
+  // Regex to capture section numbers/letters and titles. This is a best-effort approach.
+  const regex = /SEC\.\s*(\w+)\.\s*(.*?)\n\n([\s\S]*?)(?=\n\nSEC\.|$)/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    sections.push({
+      id: `section-${match[1]}`,
+      number: `Sec. ${match[1]}`,
+      header: match[2].trim(),
+      content: match[3].trim(),
     });
-  };
-
-  traverse(billRoot);
+  }
   return sections;
+};
+
+const parseSectionsFromXml = (xmlText) => {
+    const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: "@_",
+        textNodeName: "#text",
+        allowBooleanAttributes: true
+    });
+    const jsonObj = parser.parse(xmlText);
+
+    const sections = [];
+    const mainRoot = jsonObj.bill || jsonObj['bill-status'] || jsonObj['resolution-status'];
+    const billRoot = mainRoot?.bill || mainRoot;
+
+    if (!billRoot) return [];
+
+    const traverse = (node) => {
+        if (node && node.section) {
+            const sectionArray = Array.isArray(node.section) ? node.section : [node.section];
+            sectionArray.forEach(section => {
+                if (section && section.header && section.enum) {
+                    let textContent = '';
+                    const extractText = (subNode) => {
+                        if (typeof subNode === 'string') {
+                            textContent += subNode + ' ';
+                        } else if (subNode && subNode['#text']) {
+                            textContent += subNode['#text'] + ' ';
+                        } else if (typeof subNode === 'object' && subNode !== null) {
+                            Object.values(subNode).forEach(extractText);
+                        }
+                    };
+
+                    if (section.text) {
+                        extractText(section.text);
+                    } else {
+                        textContent = section.header;
+                    }
+
+                    sections.push({
+                        id: section['@_id'] || `section-${section.enum}`,
+                        number: section.enum,
+                        header: section.header.trim(),
+                        content: textContent.trim(),
+                    });
+                }
+            });
+        }
+        // Continue traversal
+        if (typeof node === 'object' && node !== null) {
+            Object.values(node).forEach(value => {
+                if (typeof value === 'object' && value !== null) {
+                    traverse(value);
+                }
+            });
+        }
+    };
+
+    traverse(billRoot);
+    return sections;
 };
 
 module.exports = async (req, res) => {
@@ -84,29 +99,69 @@ module.exports = async (req, res) => {
     if (fetchText) {
       const textUrl = `${CONGRESS_API_BASE}/bill/${congress}/${billType.toLowerCase()}/${billNumber}/text?api_key=${CONGRESS_API_KEY}`;
       const textResponse = await fetchWithHeaders(textUrl);
-      if (!textResponse.ok) throw new Error(`API Error: ${textResponse.status}`);
+      if (!textResponse.ok) throw new Error(`API Error fetching text versions: ${textResponse.status}`);
 
       const textData = await textResponse.json();
       const latestVersion = textData.textVersions?.[0];
-      const xmlFormat = latestVersion?.formats.find(f => f.type === 'Formatted XML');
 
-      if (!xmlFormat) {
-        return res.status(404).json({ error: 'XML version not found for this bill.' });
+      if (!latestVersion) {
+        return res.status(404).json({ error: 'No text versions found for this bill.' });
       }
 
-      const xmlResponse = await fetchWithHeaders(xmlFormat.url);
-      if (!xmlResponse.ok) throw new Error(`API Error: ${xmlResponse.status}`);
+      const xmlFormat = latestVersion.formats.find(f => f.type === 'Formatted XML');
+      const htmlFormat = latestVersion.formats.find(f => f.type === 'Formatted Text');
+      const pdfFormat = latestVersion.formats.find(f => f.type === 'PDF');
 
-      const xmlText = await xmlResponse.text();
-      const sections = parseSections(xmlText);
+      let sections = [];
+
+      if (xmlFormat) {
+          const xmlResponse = await fetchWithHeaders(xmlFormat.url);
+          if (xmlResponse.ok) {
+              const xmlText = await xmlResponse.text();
+              sections = parseSectionsFromXml(xmlText);
+          }
+      }
+
+      if (sections.length === 0 && htmlFormat) {
+        const htmlResponse = await fetchWithHeaders(htmlFormat.url);
+        if (htmlResponse.ok) {
+          const html = await htmlResponse.text();
+          const text = htmlToText(html, { wordwrap: 130 });
+          sections = parseSectionsFromText(text);
+        }
+      }
+
+      if (sections.length === 0 && pdfFormat) {
+        const pdfResponse = await fetchWithHeaders(pdfFormat.url);
+        if (pdfResponse.ok) {
+            const pdfBuffer = await pdfResponse.arrayBuffer();
+            const pdfParser = new PDFParser();
+
+            // pdf2json is async, so we need to wrap it in a promise
+            const pdfText = await new Promise((resolve, reject) => {
+                pdfParser.on("pdfParser_dataError", errData => reject(new Error(errData.parserError)));
+                pdfParser.on("pdfParser_dataReady", pdfData => {
+                    resolve(pdfParser.getRawTextContent());
+                });
+                pdfParser.parseBuffer(Buffer.from(pdfBuffer));
+            });
+
+            sections = parseSectionsFromText(pdfText);
+        }
+      }
+
+      if (sections.length === 0) {
+        return res.status(404).json({ error: 'Could not extract sections from the bill. The format may be unsupported.' });
+      }
 
       return res.status(200).json({ sections });
     }
 
+    // Original logic to fetch just the title
     const response = await fetchWithHeaders(billUrl);
     if (!response.ok) {
       if (response.status === 404) return res.status(404).json({ error: 'Bill not found on Congress.gov' });
-      throw new Error(`API Error: ${response.status}`);
+      throw new Error(`API Error fetching bill title: ${response.status}`);
     }
 
     const data = await response.json();
