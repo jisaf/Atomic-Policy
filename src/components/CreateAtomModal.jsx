@@ -24,8 +24,19 @@ const modalStyle = {
 };
 
 const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
+  const getNextAtomType = () => {
+    if (existingAtoms.length === 0) {
+      return 'experiment';
+    }
+    const lastAtomType = existingAtoms[existingAtoms.length - 1].type;
+    const atomTypeKeys = Object.keys(atomTypes);
+    const lastAtomIndex = atomTypeKeys.indexOf(lastAtomType);
+    const nextAtomIndex = (lastAtomIndex + 1) % atomTypeKeys.length;
+    return atomTypeKeys[nextAtomIndex];
+  };
+
   const [formData, setFormData] = useState({
-    type: 'experiment',
+    type: getNextAtomType(),
     title: '',
     billType: 'hr',
     billNumber: '',
