@@ -24,8 +24,19 @@ const modalStyle = {
 };
 
 const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
+  const getNextAtomType = () => {
+    if (existingAtoms.length === 0) {
+      return 'experiment';
+    }
+    const lastAtomType = existingAtoms[existingAtoms.length - 1].type;
+    const atomTypeKeys = Object.keys(atomTypes);
+    const lastAtomIndex = atomTypeKeys.indexOf(lastAtomType);
+    const nextAtomIndex = (lastAtomIndex + 1) % atomTypeKeys.length;
+    return atomTypeKeys[nextAtomIndex];
+  };
+
   const [formData, setFormData] = useState({
-    type: 'experiment',
+    type: getNextAtomType(),
     title: '',
     billType: 'hr',
     billNumber: '',
@@ -36,7 +47,6 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     fileReference: '',
     description: '',
     tags: '',
-    linkedTo: []
   });
 
   const [loading, setLoading] = useState(false);
@@ -117,7 +127,6 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
       type: formData.type,
       title: formData.title,
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      linkedTo: formData.linkedTo
     };
 
     if (formData.type === 'experiment') {
@@ -134,16 +143,6 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
     }
 
     onCreate(atomData);
-  };
-
-  const toggleLink = (atomId) => {
-    const linked = formData.linkedTo.includes(atomId);
-    setFormData({
-      ...formData,
-      linkedTo: linked
-        ? formData.linkedTo.filter(id => id !== atomId)
-        : [...formData.linkedTo, atomId]
-    });
   };
 
   return (
@@ -267,24 +266,6 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
           )}
 
           <TextField fullWidth label="Tags (comma-separated)" onChange={(e) => setFormData({...formData, tags: e.target.value})} sx={{ my: 2 }}/>
-
-          <Box>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Link to existing atoms</Typography>
-            <List dense sx={{ maxHeight: 150, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-              {existingAtoms.map(atom => (
-                <ListItem
-                  key={atom.id}
-                  secondaryAction={
-                    <IconButton edge="end" onClick={() => toggleLink(atom.id)}>
-                      {formData.linkedTo.includes(atom.id) ? <LinkOff color="error"/> : <Link />}
-                    </IconButton>
-                  }
-                >
-                  <ListItemText primary={atom.title} />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
         </Box>
         <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
           <Button onClick={onClose}>Cancel</Button>

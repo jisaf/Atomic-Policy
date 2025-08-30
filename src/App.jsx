@@ -101,8 +101,21 @@ const AtomicUXApp = () => {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
       ...atomData,
+      linkedTo: [],
     };
-    setAtoms([...atoms, newAtom]);
+
+    setAtoms(prevAtoms => {
+      if (prevAtoms.length > 0) {
+        const lastAtom = prevAtoms[prevAtoms.length - 1];
+        const updatedLastAtom = {
+          ...lastAtom,
+          linkedTo: [...(lastAtom.linkedTo || []), newAtom.id],
+        };
+        return [...prevAtoms.slice(0, -1), updatedLastAtom, newAtom];
+      }
+      return [newAtom];
+    });
+
     setShowCreateModal(false);
   };
 
