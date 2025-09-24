@@ -1,98 +1,132 @@
-import React from 'react';
-import { Link2, Tag } from 'lucide-react';
-import { Card, CardContent, Typography, Box, Chip } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Collapse, Paper, Chip } from '@mui/material';
+import { ChevronDown, ChevronRight, Send, Edit, History } from 'lucide-react';
+import Tag from './Tag';
+import IconButton from './IconButton';
 
-const AtomCard = ({ atom, atomTypes, onSelect, atoms }) => {
-  const typeConfig = atomTypes[atom.type];
-  const IconComponent = typeConfig.icon;
-  const linkedAtoms = (atom.linkedTo || []).map(id => atoms.find(a => a.id === id)).filter(Boolean);
+const cardStyles = {
+  fact: {
+    backgroundColor: '#fff',
+    borderColor: '#d1d5db',
+  },
+  insight: {
+    backgroundColor: '#eef2ff',
+    borderColor: '#4338ca',
+  },
+  recommendation: {
+    backgroundColor: '#fdf2f8',
+    borderColor: '#db2777',
+  },
+};
 
-  const getDisplayContent = () => {
-    if (atom.type === 'experiment' && atom.billNumber && atom.sectionTitle) {
-      return `${atom.billNumber} - ${atom.sectionTitle}`;
-    } else if (atom.type === 'recommendation' && atom.fileReference) {
-      return `📁 ${atom.fileReference}${atom.description ? ` - ${atom.description}` : ''}`;
+const CardHeader = ({ isExpanded, onToggle, title, atom }) => (
+  <Box
+    onClick={onToggle}
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      cursor: 'pointer',
+      p: 1.5,
+      borderBottom: isExpanded ? 1 : 0,
+      borderColor: 'grey.300',
+    }}
+  >
+    {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+    <Typography variant="subtitle1" sx={{ ml: 1, fontWeight: 600, flexGrow: 1 }}>
+      {title}
+    </Typography>
+    {atom.type === 'insight' && (
+      <Chip label={`PROVES +${atom.proves || 0}`} color="success" size="small" sx={{ fontWeight: 'bold' }} />
+    )}
+  </Box>
+);
+
+const AtomCard = React.forwardRef(({ atom, onSelect, isExpanded: initiallyExpanded = false }, ref) => {
+  const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+
+  const cardStyle = atom.type === 'fact'
+    ? cardStyles.insight
+    : atom.type === 'insight'
+      ? cardStyles.recommendation
+      : cardStyles.fact;
+
+  const handleToggle = () => {
+    if (!initiallyExpanded) {
+      setIsExpanded(prev => !prev);
     }
-    return atom.content;
+  };
+
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   return (
-    <Card
-      onClick={() => onSelect(atom)}
+    <Paper
+      ref={ref}
+      elevation={1}
       sx={{
-        cursor: 'pointer',
-        border: 2,
-        borderColor: typeConfig.borderColor,
-        bgcolor: typeConfig.color,
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'box-shadow 0.3s',
-        '&:hover': {
-          boxShadow: 3,
-        },
+        width: '100%',
+        border: 1,
+        borderColor: cardStyle.borderColor,
+        borderRadius: 2,
+        backgroundColor: cardStyle.backgroundColor,
+        overflow: 'hidden',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconComponent size={16} />
-            <Typography variant="caption" sx={{ fontWeight: 'medium' }}>
-              {typeConfig.label}
-            </Typography>
+      <CardHeader
+        isExpanded={isExpanded}
+        onToggle={handleToggle}
+        title={atom.title}
+        atom={atom}
+      />
+      <Collapse in={isExpanded}>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2 }}>{atom.content}</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+            {atom.tags.map((tag, index) => (
+              <Tag key={index} label={tag.label} type={tag.type} />
+            ))}
           </Box>
-          {linkedAtoms.length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
-              <Link2 size={14} />
-              <Typography variant="caption">{linkedAtoms.length}</Typography>
+          {atom.type === 'insight' && (
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="caption" color="text.secondary">Supporting 2 experiments:</Typography>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <IconButton icon={Send} />
+                  <IconButton icon={Edit} />
+                  <IconButton icon={History} />
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Tag label="FREE SHIPPING ROLLOUT FEAT" type="experiment" small />
+                <Tag label="FRANCE - FREE SHIPPING MULTIVARIATE" type="experiment" small />
+                <Tag label="UK - FREE SHIPPING MULTIVARIATE" type="experiment" small />
+              </Box>
             </Box>
           )}
         </Box>
-
-        <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold', minHeight: '3.5rem',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 1.5,
+          borderTop: 1,
+          borderColor: 'grey.200',
+          backgroundColor: 'rgba(0,0,0,0.02)'
         }}>
-          {atom.title}
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: '3rem',
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-         }}>
-          {getDisplayContent()}
-        </Typography>
-
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2, minHeight: '1.5rem' }}>
-          {atom.tags.slice(0, 3).map(tag => (
-            <Chip
-              key={tag}
-              icon={<Tag size={12} />}
-              label={tag}
-              size="small"
-              sx={{ bgcolor: 'rgba(255,255,255,0.7)' }}
-            />
-          ))}
-          {atom.tags.length > 3 && (
-            <Typography variant="caption" sx={{ alignSelf: 'center' }}>
-              +{atom.tags.length - 3} more
-            </Typography>
-          )}
+          <Typography variant="caption" color="text.secondary">
+            Created: {formatDate(atom.timestamp)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Edited: 17 May 2024 <a href="#">History</a>
+          </Typography>
         </Box>
-      </CardContent>
-      <CardContent sx={{ pt: 0 }}>
-        <Typography variant="caption" color="text.secondary">
-          {new Date(atom.timestamp).toLocaleDateString()}
-        </Typography>
-      </CardContent>
-    </Card>
+      </Collapse>
+    </Paper>
   );
-};
+});
 
 export default AtomCard;
