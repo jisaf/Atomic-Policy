@@ -271,18 +271,26 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
           <Box>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>Link to existing atoms</Typography>
             <List dense sx={{ maxHeight: 150, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-              {existingAtoms.map(atom => (
-                <ListItem
-                  key={atom.id}
-                  secondaryAction={
-                    <IconButton edge="end" onClick={() => toggleLink(atom.id)}>
-                      {formData.linkedTo.includes(atom.id) ? <LinkOff color="error"/> : <Link />}
-                    </IconButton>
-                  }
-                >
-                  <ListItemText primary={atom.title} />
-                </ListItem>
-              ))}
+              {existingAtoms
+                .filter(atom => {
+                  const targetType = formData.type;
+                  const sourceType = atom.type;
+                  if (targetType === 'fact' && sourceType === 'experiment') return true;
+                  if (targetType === 'insight' && sourceType === 'fact') return true;
+                  return false;
+                })
+                .map(atom => (
+                  <ListItem
+                    key={atom.id}
+                    secondaryAction={
+                      <IconButton edge="end" onClick={() => toggleLink(atom.id)}>
+                        {formData.linkedTo.includes(atom.id) ? <Link color="success"/> : <LinkOff color="error"/>}
+                      </IconButton>
+                    }
+                  >
+                    <ListItemText primary={atom.title} />
+                  </ListItem>
+                ))}
             </List>
           </Box>
         </Box>

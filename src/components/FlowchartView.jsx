@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect, createRef } from 'react';
-import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import AtomCard from './AtomCard';
+import Column from './Column';
 
 const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
   const containerRef = useRef();
@@ -8,10 +10,11 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
 
   useEffect(() => {
     itemRefs.current.clear();
-    atoms.forEach(atom => {
+    filteredAtoms.forEach(atom => {
+      // We now store a ref to the header, not the whole card
       itemRefs.current.set(atom.id, createRef());
     });
-  }, [atoms]);
+  }, [filteredAtoms]);
 
   useEffect(() => {
     const calculateLines = () => {
@@ -20,7 +23,7 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
       const newLines = [];
       const containerRect = containerRef.current.getBoundingClientRect();
 
-      atoms.forEach(atom => {
+      filteredAtoms.forEach(atom => {
         if (atom.linkedTo) {
           atom.linkedTo.forEach(linkedId => {
             const sourceNode = itemRefs.current.get(atom.id)?.current;
@@ -30,13 +33,15 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
               const sourceRect = sourceNode.getBoundingClientRect();
               const targetRect = targetNode.getBoundingClientRect();
 
-              newLines.push({
-                x1: sourceRect.right - containerRect.left,
-                y1: sourceRect.top + sourceRect.height / 2 - containerRect.top,
-                x2: targetRect.left - containerRect.left,
-                y2: targetRect.top + targetRect.height / 2 - containerRect.top,
-                key: `${atom.id}-${linkedId}`,
-              });
+              if (sourceRect && targetRect) {
+                newLines.push({
+                  x1: sourceRect.right - containerRect.left,
+                  y1: sourceRect.top + sourceRect.height / 2 - containerRect.top,
+                  x2: targetRect.left - containerRect.left,
+                  y2: targetRect.top + targetRect.height / 2 - containerRect.top,
+                  key: `${atom.id}-${linkedId}`,
+                });
+              }
             }
           });
         }
@@ -44,91 +49,76 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
       setLines(newLines);
     };
 
-    // Calculate lines on mount and on atom changes
-    calculateLines();
-
-    // Recalculate on resize
+    const timer = setTimeout(calculateLines, 100); // Delay to ensure refs are set
     const resizeObserver = new ResizeObserver(calculateLines);
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
-    return () => resizeObserver.disconnect();
-
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+    };
   }, [atoms, filteredAtoms]);
 
-  const groupedAtoms = Object.keys(atomTypes).map(type => ({
-    type,
-    label: atomTypes[type].label,
-    atoms: filteredAtoms.filter(atom => atom.type === type),
-  }));
+  const columns = {
+    facts: filteredAtoms.filter(atom => atom.type === 'experiment'),
+    insights: filteredAtoms.filter(atom => atom.type === 'fact'),
+    recommendations: filteredAtoms.filter(atom => atom.type === 'insight'),
+  };
 
   return (
     <Box
       ref={containerRef}
       sx={{
         position: 'relative',
+        display: 'flex',
+        gap: 2,
         p: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
         overflowX: 'auto',
-        backgroundColor: 'white',
+        minHeight: 'calc(100vh - 200px)',
+        alignItems: 'flex-start',
       }}
     >
-      <Grid container spacing={8} wrap="nowrap">
-        {groupedAtoms.map(({ type, label, atoms: groupAtoms }) => (
-          <Grid item key={type} xs={3} sx={{ minWidth: 250 }}>
-            <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
-              {label}
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {groupAtoms.map(atom => (
-                <Card
-                  key={atom.id}
-                  ref={itemRefs.current.get(atom.id)}
-                  onClick={() => onAtomClick(atom)}
-                  sx={{
-                    cursor: 'pointer',
-                    borderLeft: 4,
-                    borderColor: atomTypes[atom.type]?.borderColor || 'grey.400',
-                    '&:hover': {
-                      boxShadow: 3,
-                    },
-                    position: 'relative',
-                    zIndex: 1,
-                    backgroundColor: 'white',
-                  }}
-                >
-                  <CardContent>
-                    <Typography variant="body1" fontWeight="bold">
-                      {atom.title}
-                    </Typography>
-                    {atom.tags && (
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 1, flexWrap: 'wrap' }}>
-                        {atom.tags.map((tag, index) => (
-                          <Typography
-                            key={index}
-                            variant="caption"
-                            sx={{
-                              bgcolor: 'primary.main',
-                              color: 'white',
-                              px: 1,
-                              py: 0.5,
-                              borderRadius: '4px',
-                            }}
-                          >
-                            {tag}
-                          </Typography>
-                        ))}
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          </Grid>
+      <Column title="FACTS">
+        {columns.facts.map(atom => (
+          <AtomCard
+            key={atom.id}
+            ref={itemRefs.current.get(atom.id)}
+            headerRef={itemRefs.current.get(atom.id)}
+            atom={atom}
+            atomTypes={atomTypes}
+            onSelect={onAtomClick}
+            atoms={atoms}
+            isExpanded={true}
+          />
         ))}
-      </Grid>
+      </Column>
+      <Column title="INSIGHTS">
+        {columns.insights.map(atom => (
+          <AtomCard
+            key={atom.id}
+            ref={itemRefs.current.get(atom.id)}
+            headerRef={itemRefs.current.get(atom.id)}
+            atom={atom}
+            atomTypes={atomTypes}
+            onSelect={onAtomClick}
+            atoms={atoms}
+          />
+        ))}
+      </Column>
+      <Column title="RECOMMENDATION">
+        {columns.recommendations.map(atom => (
+          <AtomCard
+            key={atom.id}
+            ref={itemRefs.current.get(atom.id)}
+            headerRef={itemRefs.current.get(atom.id)}
+            atom={atom}
+            atomTypes={atomTypes}
+            onSelect={onAtomClick}
+            atoms={atoms}
+          />
+        ))}
+      </Column>
       <svg
         style={{
           position: 'absolute',
@@ -143,15 +133,15 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
         {lines.map(line => (
           <path
             key={line.key}
-            d={`M ${line.x1} ${line.y1} C ${line.x1 + 100} ${line.y1} ${line.x2 - 100} ${line.y2} ${line.x2} ${line.y2}`}
-            stroke="#475569"
+            d={`M ${line.x1} ${line.y1} C ${line.x1 + 60} ${line.y1} ${line.x2 - 60} ${line.y2} ${line.x2} ${line.y2}`}
+            stroke="#94a3b8"
             strokeWidth="2"
             fill="none"
           />
         ))}
       </svg>
       {filteredAtoms.length === 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: 200 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: 200, width: '100%' }}>
           <Typography variant="h6" color="text.secondary">
             {atoms.length === 0
               ? 'No atoms yet. Create your first one!'

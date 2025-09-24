@@ -67,10 +67,17 @@ const AtomDetailModal = ({ atom, onClose, atomTypes, atoms, onLink }) => {
               data-testid="link-atom-select"
             >
               {atoms
-                .filter(a => a.id !== atom.id && !(atom.linkedTo || []).includes(a.id))
+                .filter(a => {
+                  if (a.id === atom.id || (atom.linkedTo || []).includes(a.id)) return false;
+                  const sourceType = atom.type;
+                  const targetType = a.type;
+                  if (sourceType === 'experiment' && targetType === 'fact') return true;
+                  if (sourceType === 'fact' && targetType === 'insight') return true;
+                  return false;
+                })
                 .map(a => (
                   <MenuItem key={a.id} value={a.id}>{a.title}</MenuItem>
-              ))}
+                ))}
             </Select>
           </FormControl>
         </Box>

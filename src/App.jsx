@@ -58,21 +58,21 @@ const AtomicUXApp = () => {
 
   const atomTypes = {
     experiment: {
-      label: 'Source text',
+      label: 'Facts',
       icon: Beaker,
       color: 'primary.light',
       borderColor: 'primary.main',
       description: 'Select a specific bill section',
     },
     fact: {
-      label: 'Plain language interpretation',
+      label: 'Insights',
       icon: FileText,
       color: 'success.light',
       borderColor: 'success.main',
       description: 'Explain in simple terms',
     },
     insight: {
-      label: 'Pseudo code',
+      label: 'Recommendation',
       icon: Lightbulb,
       color: 'warning.light',
       borderColor: 'warning.main',
