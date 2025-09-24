@@ -22,7 +22,7 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
       const newLines = [];
       const containerRect = containerRef.current.getBoundingClientRect();
 
-      atoms.forEach(atom => {
+      filteredAtoms.forEach(atom => {
         if (atom.linkedTo) {
           atom.linkedTo.forEach(linkedId => {
             const sourceNode = itemRefs.current.get(atom.id)?.current;
