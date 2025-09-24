@@ -19,7 +19,7 @@ const cardStyles = {
   },
 };
 
-const CardHeader = ({ isExpanded, onToggle, title, atom }) => (
+const CardHeader = ({ isExpanded, onToggle, title, atom, titleRef }) => (
   <Box
     onClick={onToggle}
     sx={{
@@ -32,7 +32,7 @@ const CardHeader = ({ isExpanded, onToggle, title, atom }) => (
     }}
   >
     {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-    <Typography variant="subtitle1" sx={{ ml: 1, fontWeight: 600, flexGrow: 1 }}>
+    <Typography ref={titleRef} variant="subtitle1" sx={{ ml: 1, fontWeight: 600, flexGrow: 1 }}>
       {title}
     </Typography>
     {atom.type === 'insight' && (
@@ -41,8 +41,13 @@ const CardHeader = ({ isExpanded, onToggle, title, atom }) => (
   </Box>
 );
 
-const AtomCard = React.forwardRef(({ atom, onSelect, isExpanded: initiallyExpanded = false }, ref) => {
+const AtomCard = React.forwardRef(({ atom, onSelect, isExpanded: initiallyExpanded = false, headerRef }, ref) => {
   const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+  const titleRef = React.useRef();
+
+  React.useImperativeHandle(headerRef, () => ({
+    getBoundingClientRect: () => titleRef.current?.getBoundingClientRect(),
+  }));
 
   const cardStyle = atom.type === 'fact'
     ? cardStyles.insight

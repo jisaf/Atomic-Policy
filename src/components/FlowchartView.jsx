@@ -11,6 +11,7 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
   useEffect(() => {
     itemRefs.current.clear();
     filteredAtoms.forEach(atom => {
+      // We now store a ref to the header, not the whole card
       itemRefs.current.set(atom.id, createRef());
     });
   }, [filteredAtoms]);
@@ -32,13 +33,15 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
               const sourceRect = sourceNode.getBoundingClientRect();
               const targetRect = targetNode.getBoundingClientRect();
 
-              newLines.push({
-                x1: sourceRect.right - containerRect.left,
-                y1: sourceRect.top + sourceRect.height / 2 - containerRect.top,
-                x2: targetRect.left - containerRect.left,
-                y2: targetRect.top + targetRect.height / 2 - containerRect.top,
-                key: `${atom.id}-${linkedId}`,
-              });
+              if (sourceRect && targetRect) {
+                newLines.push({
+                  x1: sourceRect.right - containerRect.left,
+                  y1: sourceRect.top + sourceRect.height / 2 - containerRect.top,
+                  x2: targetRect.left - containerRect.left,
+                  y2: targetRect.top + targetRect.height / 2 - containerRect.top,
+                  key: `${atom.id}-${linkedId}`,
+                });
+              }
             }
           });
         }
@@ -78,6 +81,7 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
           <AtomCard
             key={atom.id}
             ref={itemRefs.current.get(atom.id)}
+            headerRef={itemRefs.current.get(atom.id)}
             atom={atom}
             atomTypes={atomTypes}
             onSelect={onAtomClick}
@@ -91,6 +95,7 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
           <AtomCard
             key={atom.id}
             ref={itemRefs.current.get(atom.id)}
+            headerRef={itemRefs.current.get(atom.id)}
             atom={atom}
             atomTypes={atomTypes}
             onSelect={onAtomClick}
@@ -103,6 +108,7 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
           <AtomCard
             key={atom.id}
             ref={itemRefs.current.get(atom.id)}
+            headerRef={itemRefs.current.get(atom.id)}
             atom={atom}
             atomTypes={atomTypes}
             onSelect={onAtomClick}
