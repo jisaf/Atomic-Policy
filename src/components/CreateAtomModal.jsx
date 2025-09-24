@@ -284,7 +284,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
                     key={atom.id}
                     secondaryAction={
                       <IconButton edge="end" onClick={() => toggleLink(atom.id)}>
-                        {formData.linkedTo.includes(atom.id) ? <Link color="error"/> : <LinkOff />}
+                        {formData.linkedTo.includes(atom.id) ? <Link color="success"/> : <LinkOff color="error"/>}
                       </IconButton>
                     }
                   >

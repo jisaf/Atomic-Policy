@@ -49,12 +49,15 @@ const FlowchartView = ({ atoms, filteredAtoms, atomTypes, onAtomClick }) => {
       setLines(newLines);
     };
 
-    calculateLines();
+    const timer = setTimeout(calculateLines, 100); // Delay to ensure refs are set
     const resizeObserver = new ResizeObserver(calculateLines);
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
-    return () => resizeObserver.disconnect();
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+    };
   }, [atoms, filteredAtoms]);
 
   const columns = {
