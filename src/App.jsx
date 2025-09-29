@@ -196,7 +196,7 @@ const AtomicUXApp = () => {
           {viewMode === 'grid' ? (
             <Grid container spacing={2}>
               {filteredAtoms.map(atom => (
-                <Grid item key={atom.id} xs={12} sm={6} md={4} lg={3}>
+                <Grid key={atom.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                   <AtomCard
                     atom={atom}
                     atomTypes={atomTypes}
@@ -206,7 +206,7 @@ const AtomicUXApp = () => {
                 </Grid>
               ))}
               {filteredAtoms.length === 0 && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography align="center" sx={{ py: 6, color: 'text.secondary' }}>
                     {atoms.length === 0
                       ? 'No atoms yet. Create your first one!'

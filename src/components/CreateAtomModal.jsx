@@ -170,10 +170,10 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
           {formData.type === 'experiment' ? (
             <Box sx={{ mt: 2, spaceY: 2 }}>
               <Grid container spacing={2}>
-                <Grid item xs={4}>
+                <Grid size={4}>
                   <TextField fullWidth label="Congress" value={formData.congress} onChange={e => setFormData({...formData, congress: e.target.value})} />
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={4}>
                   <FormControl fullWidth>
                     <InputLabel>Bill Type</InputLabel>
                     <Select label="Bill Type" value={formData.billType} onChange={e => setFormData({...formData, billType: e.target.value})}>
@@ -182,7 +182,7 @@ const CreateAtomModal = ({ onClose, onCreate, atomTypes, existingAtoms }) => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={4}>
                   <TextField fullWidth label="Bill Number" value={formData.billNumber} onChange={e => setFormData({...formData, billNumber: e.target.value})} />
                 </Grid>
               </Grid>
