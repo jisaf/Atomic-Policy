@@ -55,6 +55,7 @@ const AtomicUXApp = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedAtom, setSelectedAtom] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
+  const [lastCreatedAtom, setLastCreatedAtom] = useState(null);
 
   const atomTypes = {
     experiment: {
@@ -103,6 +104,7 @@ const AtomicUXApp = () => {
       ...atomData,
     };
     setAtoms([...atoms, newAtom]);
+    setLastCreatedAtom(newAtom);
     setShowCreateModal(false);
   };
 
@@ -231,6 +233,7 @@ const AtomicUXApp = () => {
             onCreate={createAtom}
             atomTypes={atomTypes}
             existingAtoms={atoms}
+            lastCreatedAtom={lastCreatedAtom}
           />
         )}
 
